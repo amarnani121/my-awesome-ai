@@ -1,41 +1,45 @@
 import streamlit as st
 import requests
+import json
 
-# Application token
-APPLICATION_TOKEN = "AstraCS:asQDxBwpZtXPrurvqluzffPO:da9113aafcfc71137ed7d3dd5d073a081bf21be42c3d7ee49801d760d82508e4"
+# Configuration
+BASE_API_URL = "https://api.langflow.astra.datastax.com"
+LANGFLOW_ID = "50c7cc2c-2232-4c97-b4d1-5b6d38d92ba4"  # Replace with your LangFlow ID
+FLOW_ID = "9188fea5-a2be-4301-9f92-f916b23dc9af"  # Replace with your Flow ID
+APPLICATION_TOKEN = "AstraCS:asQDxBwpZtXPrurvqluzffPO:da9113aafcfc71137ed7d3dd5d073a081bf21be42c3d7ee49801d760d82508e4"  # Replace with your Application Token
 
-# API base URL
-API_BASE_URL = "https://your-langflow-api-endpoint"  # Replace with your LangFlow API endpoint
+# Function to interact with LangFlow
+def run_flow(message, endpoint, tweaks=None):
+    api_url = f"{BASE_API_URL}/lf/{LANGFLOW_ID}/api/v1/run/{endpoint}"
+    payload = {
+        "input_value": message,
+        "output_type": "chat",
+        "input_type": "chat",
+    }
+    if tweaks:
+        payload["tweaks"] = tweaks
 
-# Streamlit App
+    headers = {
+        "Authorization": f"Bearer {APPLICATION_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    response = requests.post(api_url, json=payload, headers=headers)
+    return response.json()
+
+# Streamlit UI
 st.title("LangFlow API Integration")
+user_message = st.text_input("Enter your message:")
 
-# User input
-st.write("Enter a query to interact with your LangFlow application:")
-user_query = st.text_input("Query:")
-
-# Submit button
 if st.button("Submit"):
-    if user_query.strip():
-        # Prepare the request headers and payload
-        headers = {
-            "Authorization": f"Bearer {APPLICATION_TOKEN}",
-            "Content-Type": "application/json",
-        }
-        payload = {"query": user_query}
-
+    if user_message.strip():
         try:
-            # Send the POST request
-            response = requests.post(f"{API_BASE_URL}/endpoint-path", json=payload, headers=headers)
-            
-            # Handle the response
-            if response.status_code == 200:
-                response_data = response.json()
-                st.success(f"Response: {response_data}")
-            else:
-                st.error(f"Error {response.status_code}: {response.text}")
-        except requests.exceptions.RequestException as e:
+            result = run_flow(
+                message=user_message,
+                endpoint=FLOW_ID,  # Use flow ID or endpoint name
+            )
+            st.json(result)
+        except Exception as e:
             st.error(f"An error occurred: {e}")
     else:
-        st.warning("Please enter a valid query.")
+        st.warning("Please enter a valid message.")
 
